@@ -1,0 +1,114 @@
+import pandas as pd
+
+filename = "KritterSoftwareTechnology (1).xlsx"
+if filename in uploaded:
+  df = pd.read_excel(io.BytesIO(uploaded["KritterSoftwareTechnology (1).xlsx"]))
+  print(df.head(5))
+else:
+    print(f"Error: File '{filename}' not found in uploaded files.")
+    print("Available files:", list(uploaded.keys()))
+
+df.describe()
+
+agriculture_cols = [
+    "AREA_IRRIGATED_IN_HAC", "HHD_WITH_FARM_ACTIVITIES", "GOVT_SEED_CENTRE_AVAILABILITY"
+]
+
+infrastructure_cols = [
+    "MARKET_AVAILABILITY", "RECREATIONAL_CENTRE_AVAILABILITY", "SMALL_SCALE_UNITS_AVAILABILITY"
+]
+
+education_cols = [
+    "PRIMARY_SCHOOL_AVAILABILITY", "MIDDLE_SCHOOL_AVAILABILITY",
+    "GOVT_DEGREE_COLLEGE_AVAILABILITY", "GRD_AND_PG_IN_VILLAGE"
+]
+
+health_cols = [
+    "PHC_AVAILABILITY", "JAN_AUSHADHI_KENDRA_AVAILABILITY"
+]
+
+
+all_sector_cols = agriculture_cols + infrastructure_cols + education_cols + health_cols
+
+# Normalize values using Min-Max Scaler
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()
+normalized_values = scaler.fit_transform(df[all_sector_cols])
+normalized_df = pd.DataFrame(normalized_values, columns=[col + "_NORM" for col in all_sector_cols])
+
+scored_df = pd.concat([df.reset_index(drop=True), normalized_df], axis=1)
+
+scored_df["AGRICULTURE_SCORE"] = normalized_df[[col + "_NORM" for col in agriculture_cols]].mean(axis=1)
+scored_df["INFRASTRUCTURE_SCORE"] = normalized_df[[col + "_NORM" for col in infrastructure_cols]].mean(axis=1)
+scored_df["EDUCATION_SCORE"] = normalized_df[[col + "_NORM" for col in education_cols]].mean(axis=1)
+scored_df["HEALTH_SCORE"] = normalized_df[[col + "_NORM" for col in health_cols]].mean(axis=1)
+
+scored_df["OVERALL_DEVELOPMENT_SCORE"] = scored_df[
+    ["AGRICULTURE_SCORE", "INFRASTRUCTURE_SCORE", "EDUCATION_SCORE", "HEALTH_SCORE"]
+].mean(axis=1
+
+
+print(scored_df["OVERALL_DEVELOPMENT_SCORE"])
+
+scored_df["AGRICULTURE_RANK"] = scored_df["AGRICULTURE_SCORE"].rank(ascending=False, method='min')
+scored_df["INFRASTRUCTURE_RANK"] = scored_df["INFRASTRUCTURE_SCORE"].rank(ascending=False, method='min')
+scored_df["EDUCATION_RANK"] = scored_df["EDUCATION_SCORE"].rank(ascending=False, method='min')
+scored_df["HEALTH_RANK"] = scored_df["HEALTH_SCORE"].rank(ascending=False, method='min')
+scored_df["OVERALL_RANK"] = scored_df["OVERALL_DEVELOPMENT_SCORE"].rank(ascending=False, method='min')
+
+# To get the maximum 'EDUCATION_SCORE' for each 'BLOCK_NAME' and 'VILLAGE_NAME':
+max_education_score = scored_df.groupby(['BLOCK_NAME', 'VILLAGE_NAME'])['EDUCATION_SCORE'].max()
+print(max_education_score)
+# If you just want the maximum 'EDUCATION_SCORE' in the entire DataFrame:
+max_education_score = scored_df['EDUCATION_SCORE'].max()
+print(max_education_score)
+
+top5 = scored_df.sort_values(by="OVERALL_RANK").head(5)[
+    ["STATE_NAME", "DISTRICT_NAME", "BLOCK_NAME", "VILLAGE_NAME",
+     "AGRICULTURE_SCORE", "INFRASTRUCTURE_SCORE", "EDUCATION_SCORE",
+     "HEALTH_SCORE", "OVERALL_DEVELOPMENT_SCORE", "OVERALL_RANK"]
+]
+
+print("Top 5 Villages by Overall Score:")
+print(top5)
+
+health_leaderboard = scored_df.sort_values(by="HEALTH_RANK").head(10)[
+    ["STATE_NAME", "DISTRICT_NAME", "BLOCK_NAME", "VILLAGE_NAME",
+     "HEALTH_SCORE", "HEALTH_RANK"]
+]
+
+# Reset index for cleaner display
+health_leaderboard.reset_index(drop=True, inplace=True)
+
+# Display the leaderboard
+print(health_leaderboard)
+
+# Sort villages by best agriculture rank and get top 10
+agri_leaderboard = scored_df.sort_values(by="AGRICULTURE_RANK").head(10)[
+    ["STATE_NAME", "DISTRICT_NAME", "BLOCK_NAME", "VILLAGE_NAME",
+     "AGRICULTURE_SCORE", "AGRICULTURE_RANK"]
+]
+
+# Reset index for cleaner display
+agri_leaderboard.reset_index(drop=True, inplace=True)
+
+# Display the leaderboard
+print(agri_leaderboard)
+
+infra_leaderboard = scored_df.sort_values(by="INFRASTRUCTURE_RANK").head(15)[
+    ["STATE_NAME", "DISTRICT_NAME", "BLOCK_NAME", "VILLAGE_NAME",
+     "INFRASTRUCTURE_SCORE", "INFRASTRUCTURE_RANK"]
+]
+
+# Reset index for cleaner display
+infra_leaderboard.reset_index(drop=True, inplace=True)
+
+# Display the leaderboard
+print(infra_leaderboard)
+
+educa_leaderboard = scored_df.sort_values(by="EDUCATION_RANK").head(10)[
+    ["STATE_NAME", "DISTRICT_NAME", "BLOCK_NAME", "VILLAGE_NAME",
+     "EDUCATION_SCORE", "EDUCATION_RANK"]
+]
+print(educa_leaderboard)
+
